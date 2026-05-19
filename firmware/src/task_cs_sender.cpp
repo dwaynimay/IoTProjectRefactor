@@ -120,6 +120,41 @@ void taskRssiExchange(void* param)
 
 
 // =============================================================================
+// Sensor Sanity Check — batas fisis sensor
+// =============================================================================
+//
+//  IMU (MPU6050 default config):
+//    Accel range : ±2g  → ±19.62 m/s²  (pakai ±25 untuk margin)
+//    Gyro range  : ±250 °/s             (pakai ±300 untuk margin)
+//
+//  PPG:
+//    IR raw      : harus > 0 jika finger=true
+//
+//  Jika gagal, window TIDAK di-encode dan di-kirim.
+//  Counter g_droppedWindows dilog setiap DROPPED_LOG_INTERVAL window.
+// =============================================================================
+namespace SanityLimit {
+    // Accel: MPU6050 default ±2g → ±19.62 m/s², pakai ±25 sebagai batas keras
+    static constexpr float ACCEL_MAX_MS2  = 25.0f;
+    // Gyro: MPU6050 default ±250 °/s, pakai ±300 sebagai batas keras
+    static constexpr float GYRO_MAX_DEGS  = 300.0f;
+    // Log setiap N drop agar tidak spam
+    static constexpr uint32_t DROPPED_LOG_INTERVAL = 10;
+}
+
+static bool _imuInRange(const ImuSample& s)
+{
+    if (fabsf(s.accelX) > SanityLimit::ACCEL_MAX_MS2) return false;
+    if (fabsf(s.accelY) > SanityLimit::ACCEL_MAX_MS2) return false;
+    if (fabsf(s.accelZ) > SanityLimit::ACCEL_MAX_MS2) return false;
+    if (fabsf(s.gyroX)  > SanityLimit::GYRO_MAX_DEGS) return false;
+    if (fabsf(s.gyroY)  > SanityLimit::GYRO_MAX_DEGS) return false;
+    if (fabsf(s.gyroZ)  > SanityLimit::GYRO_MAX_DEGS) return false;
+    return true;
+}
+
+
+// =============================================================================
 // taskCSSender — Entry Point Task
 // =============================================================================
 void taskCSSender(void* param)
@@ -130,9 +165,10 @@ void taskCSSender(void* param)
     float yGx[CS_M], yGy[CS_M], yGz[CS_M];
     float yIr[CS_M];
 
-    uint32_t windowCount  = 0;
-    uint32_t directCount  = 0;
-    uint32_t relayedCount = 0;
+    uint32_t windowCount    = 0;
+    uint32_t directCount    = 0;
+    uint32_t relayedCount   = 0;
+    uint32_t droppedWindows = 0;   // counter drop akibat sanity check
 
     CSPhiMatrix::printInfo();
     CSPhiMatrix::printSyncDebug();
@@ -155,6 +191,31 @@ void taskCSSender(void* param)
         ppg = g_latestPpg;
         taskEXIT_CRITICAL(&g_stateMux);
 
+        // ── Sanity Check: validasi range fisis sensor ─────────────────────────
+        const bool fingerDetected = (ppg.irRaw >= EdgeConfig::IR_FINGER_THRESHOLD);
+
+        if (!_imuInRange(imu))
+        {
+            droppedWindows++;
+            if (droppedWindows % SanityLimit::DROPPED_LOG_INTERVAL == 0)
+            {
+                LOG_WARN(TAG,
+                         "SANITY DROP #%lu | IMU out-of-range "
+                         "ax=%.2f ay=%.2f az=%.2f gx=%.2f gy=%.2f gz=%.2f",
+                         droppedWindows,
+                         imu.accelX, imu.accelY, imu.accelZ,
+                         imu.gyroX,  imu.gyroY,  imu.gyroZ);
+            }
+            vTaskDelay(pdMS_TO_TICKS(Timing::IMU_SAMPLE_MS));
+            continue;
+        }
+
+        // PPG: jika jari tidak terdeteksi, skip IR encoding (isi 0)
+        // Sensor tetap di-push ke encoder IMU agar buffer tidak stall
+        const float irSample = fingerDetected
+                               ? static_cast<float>(ppg.irRaw)
+                               : 0.0f;
+
         // ── Push sample ke semua encoder ──────────────────────────────────────
         const bool axRdy = g_encAx.pushSample(imu.accelX);
         const bool ayRdy = g_encAy.pushSample(imu.accelY);
@@ -162,7 +223,7 @@ void taskCSSender(void* param)
         const bool gxRdy = g_encGx.pushSample(imu.gyroX);
         const bool gyRdy = g_encGy.pushSample(imu.gyroY);
         const bool gzRdy = g_encGz.pushSample(imu.gyroZ);
-        const bool irRdy = g_encIr.pushSample(static_cast<float>(ppg.irRaw));
+        const bool irRdy = g_encIr.pushSample(irSample);
 
         if (!(axRdy && ayRdy && azRdy && gxRdy && gyRdy && gzRdy && irRdy))
         {
@@ -179,7 +240,7 @@ void taskCSSender(void* param)
         g_encGz.encode(yGz);
         g_encIr.encode(yIr);
 
-        const bool     finger = (ppg.irRaw >= EdgeConfig::IR_FINGER_THRESHOLD);
+        const bool     finger = fingerDetected;  // already computed above
         const uint32_t tsNow  = millis();
 
         // ── Dynamic Routing Decision ──────────────────────────────────────────

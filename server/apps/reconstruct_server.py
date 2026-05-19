@@ -28,7 +28,9 @@ from core.config import (
     TOPIC_BASE, SIGNALS, IMU_SIGNALS, PPG_SIGNALS,
     UNITS, TS_SPREAD_TOLERANCE_MS,
 )
-from core.cs_router import reconstruct
+from core.cs_router import reconstruct, PHI
+from core.validator import validate_imu, validate_ppg, reset_node_state
+from core.quality import assess_window, window_summary
 
 
 # =============================================================================
@@ -43,15 +45,29 @@ class NodeState:
         self.windows_done  = 0
         self._last_win_t   = 0.0
         self._total_rec_ms = 0.0
+        self._val_errors   = 0      # jumlah payload ditolak validator
+        self._low_quality  = 0      # jumlah window LOW_QUALITY
 
     def on_imu(self, payload: dict):
-        """Dipanggil saat cs_imu diterima."""
+        """Dipanggil saat cs_imu diterima — validasi dulu sebelum buffer."""
+        ok, errors = validate_imu(payload, node_id=self.node_id)
+        if not ok:
+            print(f"[Node {self.node_id}] VALIDATION ERROR (cs_imu): "
+                  f"{'; '.join(errors)}")
+            self._val_errors += 1
+            return
         with self._lock:
             self._imu_buf = payload
             self._try_reconstruct()
 
     def on_ppg(self, payload: dict):
-        """Dipanggil saat cs_ppg diterima."""
+        """Dipanggil saat cs_ppg diterima — validasi dulu sebelum buffer."""
+        ok, errors = validate_ppg(payload, node_id=self.node_id)
+        if not ok:
+            print(f"[Node {self.node_id}] VALIDATION ERROR (cs_ppg): "
+                  f"{'; '.join(errors)}")
+            self._val_errors += 1
+            return
         with self._lock:
             self._ppg_buf = payload
             self._try_reconstruct()
@@ -92,14 +108,16 @@ class NodeState:
 
     def _reconstruct(self, imu_data: dict, ppg_data: dict):
         """Rekonstruksi semua 7 sinyal dari payload hybrid."""
-        results = {}
+        results      = {}
+        measurements = {}   # simpan y vector untuk quality assessment
         t0 = time.time()
 
         # Rekonstruksi 6 sinyal IMU dari cs_imu
         for sig in IMU_SIGNALS:
             y = imu_data.get(sig, [])
             if len(y) == CS_M:
-                results[sig] = reconstruct(y)
+                results[sig]      = reconstruct(y)
+                measurements[sig] = y
             else:
                 print(f"[Node {self.node_id}] WARN: {sig} len={len(y)}, "
                       f"expected {CS_M}")
@@ -107,7 +125,8 @@ class NodeState:
         # Rekonstruksi IR dari cs_ppg
         y_ir = ppg_data.get("ir", [])
         if len(y_ir) == CS_M:
-            results["ir"] = reconstruct(y_ir)
+            results["ir"]      = reconstruct(y_ir)
+            measurements["ir"] = y_ir
         else:
             print(f"[Node {self.node_id}] WARN: ir len={len(y_ir)}, "
                   f"expected {CS_M}")
@@ -122,31 +141,49 @@ class NodeState:
 
         # Metadata dari cs_ppg
         hr     = ppg_data.get("hr", -1)
+        spo2   = ppg_data.get("spo2", None)
         finger = ppg_data.get("finger", False)
         ts     = imu_data.get("ts", 0)
-
         avg_ms = self._total_rec_ms / self.windows_done
 
+        # ── Quality Assessment ─────────────────────────────────────────────────
+        quality_map = assess_window(measurements, results, PHI)
+        q_summary   = window_summary(quality_map)
+        if q_summary["any_low_quality"]:
+            self._low_quality += 1
+
+        # ── Print Header ──────────────────────────────────────────────────────
+        q_tag = "⚠ LOW_Q" if q_summary["any_low_quality"] else "OK"
+        spo2_str = f" | SpO2={spo2:.1f}%" if spo2 is not None else ""
         print(f"\n[Node {self.node_id}] Window #{self.windows_done} "
               f"| ts={ts}ms | gap={gap_ms:.0f}ms "
-              f"| HR={hr} | finger={'Y' if finger else 'N'} "
-              f"| rekon={elapsed_ms:.1f}ms | avg={avg_ms:.1f}ms")
+              f"| HR={hr}{spo2_str} | finger={'Y' if finger else 'N'} "
+              f"| rekon={elapsed_ms:.1f}ms | avg={avg_ms:.1f}ms "
+              f"| quality={q_tag} "
+              f"| val_err={self._val_errors} | low_q={self._low_quality}")
 
-        # Print hasil rekonstruksi
+        # ── Print rekonstruksi + quality per sinyal ───────────────────────────
         for sig in IMU_SIGNALS:
             if sig in results:
                 x    = results[sig]
                 unit = UNITS[sig]
-                print(f"  {sig}: [{x.min():.3f} … {x.max():.3f}] {unit}")
+                q    = quality_map.get(sig)
+                q_info = f" rel_err={q.relative_error:.3f}" if q else ""
+                print(f"  {sig}: [{x.min():.3f} … {x.max():.3f}] {unit}{q_info}")
 
         if "ir" in results:
             x = results["ir"]
-            print(f"  ir: [{x.min():.0f} … {x.max():.0f}] ADC")
+            q = quality_map.get("ir")
+            q_info = f" rel_err={q.relative_error:.3f}" if q else ""
+            print(f"  ir: [{x.min():.0f} … {x.max():.0f}] ADC{q_info}")
 
-        # ── TODO: simpan ke database / kirim ke ML model ──────────────────
-        # import numpy as np
-        # features = np.concatenate([results[s] for s in SIGNALS])
-        # prediction = model.predict(features.reshape(1, -1))
+        # Print quality warnings jika ada
+        for w in q_summary.get("warnings", []):
+            print(f"  [QUALITY WARN] {w}")
+
+        # ── Hook: storage / ML model (Phase 2 & 3) ────────────────────────────
+        # Phase 2: storage.save_window(self.node_id, ts, results, q_summary)
+        # Phase 3: ml_inference.predict(results, hr=hr, spo2=spo2)
 
 
 # =============================================================================
