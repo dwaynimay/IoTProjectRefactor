@@ -2370,8 +2370,8 @@
     "semantic_hash": "588247733c583bceb421e6a719abce7b"
   },
   "C:\\Users\\Administrator\\Documents\\GitHub\\IoTProjectRefactor\\firmware\\lib\\EspNowMesh\\EspNowMesh.cpp": {
-    "mtime": 1779032590.4468832,
-    "ast_hash": "6c790c69b911bfcb916197aa52c1930d",
+    "mtime": 1779033448.871845,
+    "ast_hash": "f2a229773727776c5d6dd2d047ad5efe",
     "semantic_hash": ""
   },
   "C:\\Users\\Administrator\\Documents\\GitHub\\IoTProjectRefactor\\firmware\\lib\\EspNowMesh\\EspNowMesh.h": {
@@ -2380,8 +2380,8 @@
     "semantic_hash": "047ead7f89145ba0533908545d174c9b"
   },
   "C:\\Users\\Administrator\\Documents\\GitHub\\IoTProjectRefactor\\firmware\\lib\\EspNowMesh\\MeshPackets.h": {
-    "mtime": 1779032540.7018971,
-    "ast_hash": "ae206a6567d443d6c39a7489f0e5762e",
+    "mtime": 1779033448.872508,
+    "ast_hash": "98988b72fb5d7ba992a48a8fe9ac3564",
     "semantic_hash": ""
   },
   "C:\\Users\\Administrator\\Documents\\GitHub\\IoTProjectRefactor\\firmware\\lib\\EspNowMesh\\MeshRouting.cpp": {
@@ -2445,13 +2445,13 @@
     "semantic_hash": "00361704d6689975ab28c950d39874cf"
   },
   "C:\\Users\\Administrator\\Documents\\GitHub\\IoTProjectRefactor\\firmware\\src\\main.cpp": {
-    "mtime": 1779032650.6602137,
-    "ast_hash": "6ff151e31785bb4a09d8b95f888b3f98",
+    "mtime": 1779033448.873926,
+    "ast_hash": "48c8407d00ab4d26f7cf167902b21f24",
     "semantic_hash": ""
   },
   "C:\\Users\\Administrator\\Documents\\GitHub\\IoTProjectRefactor\\firmware\\src\\task_cs_sender.cpp": {
-    "mtime": 1779032621.8676503,
-    "ast_hash": "cc7a1aa3e984f6cccb5108b0c134fb0a",
+    "mtime": 1779033448.8750465,
+    "ast_hash": "c303a2ce972b6a474d493454fab69791",
     "semantic_hash": ""
   },
   "C:\\Users\\Administrator\\Documents\\GitHub\\IoTProjectRefactor\\firmware\\src\\task_mesh_handler.cpp": {
@@ -2523,6 +2523,16 @@
     "mtime": 1778775061.5407243,
     "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
     "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\Administrator\\Documents\\GitHub\\IoTProjectRefactor\\includes.txt": {
+    "mtime": 1779033448.8761756,
+    "ast_hash": "0f4a07763b23b5488c0c6f0eaa25294a",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\Administrator\\Documents\\GitHub\\IoTProjectRefactor\\includes_utf8.txt": {
+    "mtime": 1779033448.8774855,
+    "ast_hash": "e195f0595c59a3614ee1148c39bec6b2",
+    "semantic_hash": ""
   },
   "C:\\Users\\Administrator\\Documents\\GitHub\\IoTProjectRefactor\\README.md": {
     "mtime": 1778776288.202743,
@@ -2613,6 +2623,11 @@
     "mtime": 1779029468.1514702,
     "ast_hash": "84de69efd46ab0b8430393bd4188f8f2",
     "semantic_hash": "84de69efd46ab0b8430393bd4188f8f2"
+  },
+  "C:\\Users\\Administrator\\Documents\\GitHub\\IoTProjectRefactor\\docs\\mesh_architecture.md": {
+    "mtime": 1779033448.8537877,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
   },
   "C:\\Users\\Administrator\\Documents\\GitHub\\IoTProjectRefactor\\firmware\\.pio\\libdeps\\node_gateway\\ArduinoJson\\LICENSE.txt": {
     "mtime": 1772472220.7758987,
@@ -2788,5 +2803,40 @@
     "mtime": 1777603428.7949047,
     "ast_hash": "be5f01a77ab3296ee4e47f77b2b08909",
     "semantic_hash": "be5f01a77ab3296ee4e47f77b2b08909"
+  },
+  "C:\\Users\\Administrator\\Documents\\GitHub\\IoTProjectRefactor\\docs\\breadboard_v01.png": {
+    "mtime": 1779033448.841485,
+    "ast_hash": "b3e6c33d0caa6311cbd7e61e5a2a21ed",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\Administrator\\Documents\\GitHub\\IoTProjectRefactor\\docs\\breadboard_v02.png": {
+    "mtime": 1779033448.8531628,
+    "ast_hash": "ea172b7646f788e0da19c59e52f78055",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\Administrator\\Documents\\GitHub\\IoTProjectRefactor\\docs\\prototype_v01.jpeg": {
+    "mtime": 1779033448.855915,
+    "ast_hash": "2632ce69f76b212f55b0842a0b2c4c7c",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\Administrator\\Documents\\GitHub\\IoTProjectRefactor\\docs\\prototype_v02_bottom.jpeg": {
+    "mtime": 1779033448.8575766,
+    "ast_hash": "13e1fd02d6bae480d0c7d8da64d78f69",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\Administrator\\Documents\\GitHub\\IoTProjectRefactor\\docs\\prototype_v02_top.jpeg": {
+    "mtime": 1779033448.8602047,
+    "ast_hash": "2ddb3219a1d92656c2ebe99d4d392420",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\Administrator\\Documents\\GitHub\\IoTProjectRefactor\\docs\\schematic_v01.png": {
+    "mtime": 1779033448.864341,
+    "ast_hash": "5ce20f3d94af83b2ca6383a2bf9db192",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\Administrator\\Documents\\GitHub\\IoTProjectRefactor\\docs\\schematic_v02.png": {
+    "mtime": 1779033448.8702974,
+    "ast_hash": "a16b726768a749a14d19a9f80224f6ee",
+    "semantic_hash": ""
   }
 }
